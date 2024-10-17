@@ -3,6 +3,8 @@ import { StatusCodes } from "http-status-codes";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import VerificationCodeEmailTemplate from "../emails/VerificationCodeEmailTemplate.js";
+import ForgotPasswordEmailTemplate from "../emails/ForgotPasswordEmailTemplate.js";
+import PasswordChangedEmailTemplate from "../emails/PasswordChangedEmailTemplate.js";
 import { generateSixDigitCode } from "../utils/verificationCodeGenerator.js";
 import { formatDateToMySQL } from "../utils/dateUtils.js";
 
@@ -152,7 +154,7 @@ const login = async (req, res) => {
 
   try {
     const [user] = await dbConnection.query(
-      "SELECT first_name, last_name, email, password, id, isVerified FROM users WHERE email = ?",
+      "SELECT email, password, id, isVerified FROM users WHERE email = ?",
       [email]
     );
 
@@ -180,8 +182,6 @@ const login = async (req, res) => {
     const token = jwt.sign(
       {
         id: user[0].id,
-        firstName: user[0].first_name,
-        lastName: user[0].last_name,
         email: user[0].email,
       },
       process.env.JWT_SECRET,
@@ -201,18 +201,211 @@ const login = async (req, res) => {
   }
 };
 
-const updateUserAttributes = async (req, res) => {};
+const updateUserAttributes = async (req, res) => {
+  const { userId } = req.params;
+  const {
+    firstName,
+    lastName,
+    email,
+    phoneNumber,
+    age,
+    city,
+    subCity,
+    kebele,
+    maritalStatus,
+    drugUsageStatus,
+    mentalHealthStatus,
+  } = req.body;
 
-const getUserByID = async (req, res) => {};
+  try {
+    const query = `
+      UPDATE users
+      SET 
+        first_name = COALESCE(?, first_name),
+        last_name = COALESCE(?, last_name),
+        email = COALESCE(?, email),
+        phone_number = COALESCE(?, phone_number),
+        age = COALESCE(?, age),
+        city = COALESCE(?, city),
+        sub_city = COALESCE(?, sub_city),
+        kebele = COALESCE(?, kebele),
+        marital_status = COALESCE(?, marital_status),
+        drug_usage_status = COALESCE(?, drug_usage_status),
+        mental_health_status= COALESCE(?, mental_health_status)
+      WHERE id = ?
+    `;
 
-const getAllUsers = async (req, res) => {};
+    const [result] = await dbConnection.query(query, [
+      firstName,
+      lastName,
+      email,
+      phoneNumber,
+      age,
+      city,
+      subCity,
+      kebele,
+      maritalStatus,
+      drugUsageStatus,
+      mentalHealthStatus,
+      userId,
+    ]);
 
-const deleteUserByID = async (req, res) => {};
+    if (result.affectedRows === 0) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ message: "User not found." });
+    }
 
-// password
-const forgotPassword = async (req, res) => {};
+    return res
+      .status(StatusCodes.OK)
+      .json({ message: "User updated successfully." });
+  } catch (error) {
+    console.error("Error updating user attributes:", error);
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ message: "Server error, please try again later." });
+  }
+};
 
-const resetPassord = async (req, res) => {};
+const getUserByID = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const query =
+      "SELECT first_name, last_name, email, age, phone_number, city, sub_city, kebele, marital_status, disability_status, drug_usage_status, mental_health_status, isVerified FROM users WHERE id = ?";
+    const [user] = await dbConnection.query(query, [userId]);
+
+    if (user.length === 0) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ message: "User not found." });
+    }
+
+    return res.status(StatusCodes.OK).json(user[0]);
+  } catch (error) {
+    console.error("Error retrieving user:", error);
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ message: "Server error, please try again later." });
+  }
+};
+
+const getAllUsers = async (req, res) => {
+  try {
+    const query =
+      "SELECT id, first_name, last_name, email, age, phone_number, city, sub_city, kebele, marital_status, disability_status, drug_usage_status, mental_health_status, isVerified FROM users";
+    const [users] = await dbConnection.query(query);
+
+    if (users.length === 0) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ message: "No users found." });
+    }
+
+    return res.status(StatusCodes.OK).json(users);
+  } catch (error) {
+    console.error("Error retrieving users:", error);
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ message: "Server error, please try again later." });
+  }
+};
+
+const deleteUserByID = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const query = "DELETE FROM users WHERE id = ?";
+    const [result] = await dbConnection.query(query, [userId]);
+
+    if (result.affectedRows === 0) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ message: "User not found." });
+    }
+
+    return res
+      .status(StatusCodes.OK)
+      .json({ message: "User deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ message: "Server error, please try again later." });
+  }
+};
+
+// forget password
+const forgetPassword = async (req, res, next) => {
+  const { email } = req.body;
+
+  try {
+    const [user] = await dbConnection.query(
+      "SELECT id, first_name FROM users WHERE email = ?",
+      [email]
+    );
+
+    if (user.length === 0) {
+      return next(CreateError(StatusCodes.NOT_FOUND, "Email not found"));
+    }
+
+    // reset token with one hour expiration
+    const resetToken = jwt.sign(
+      {
+        id: user[0].id,
+        email: user[0].email,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    await ForgotPasswordEmailTemplate(email, user[0].first_name, resetToken);
+
+    return res.status(StatusCodes.OK).json("Password reset email sent.");
+  } catch (error) {
+    console.error("Error in forgetPassword:", error);
+    return next(error);
+  }
+};
+
+const resetPassword = async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // find user associated with the id from the decoded token
+    const [user] = await dbConnection.query(
+      "SELECT id, first_name, email FROM Users WHERE id = ?",
+      [decoded.id]
+    );
+
+    if (user.length === 0) {
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .json({ message: "Invalid or expired token" });
+    }
+
+    // hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await dbConnection.query("UPDATE Users SET password = ? WHERE id = ?", [
+      hashedPassword,
+      user[0].id,
+    ]);
+
+    await PasswordChangedEmailTemplate(user[0].email, user[0].first_name);
+
+    return res
+      .status(StatusCodes.OK)
+      .json({ message: "Password reset successful" });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    return res
+      .status(StatusCodes.BAD_REQUEST)
+      .json({ message: "Invalid or expired token" });
+  }
+};
 
 export {
   register,
@@ -222,6 +415,6 @@ export {
   getUserByID,
   getAllUsers,
   deleteUserByID,
-  forgotPassword,
-  resetPassord,
+  forgetPassword,
+  resetPassword,
 };

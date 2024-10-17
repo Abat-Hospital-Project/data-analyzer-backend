@@ -1,5 +1,15 @@
 import express from "express";
-import { register, login, verifyEmail } from "../controllers/userController.js";
+import {
+  register,
+  login,
+  verifyEmail,
+  updateUserAttributes,
+  getAllUsers,
+  getUserByID,
+  deleteUserByID,
+  forgetPassword,
+  resetPassword,
+} from "../controllers/userController.js";
 import {
   handleValidationErrors,
   validateLogin,
@@ -11,5 +21,11 @@ const router = express.Router();
 router.post("/register", validateRegister, handleValidationErrors, register);
 router.post("/verify-email", verifyEmail);
 router.post("/login", validateLogin, handleValidationErrors, login);
+router.post("/update/:userId", updateUserAttributes);
+router.get("/get-all", getAllUsers);
+router.get("/get/:userId", getUserByID);
+router.delete("/delete/:userId", deleteUserByID);
+router.post("/forgot-password", forgetPassword);
+router.post("/reset-password", resetPassword);
 
 export default router;
