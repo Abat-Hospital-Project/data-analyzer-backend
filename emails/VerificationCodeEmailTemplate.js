@@ -5,10 +5,5 @@ export default (clientEmailAddress, verificationCode) => {
   const verificationEmailTemplate = `
     <p>Your verification code is: ${verificationCode}</p>
     <p>This code will expire in 1 hour. Please use it to verify your account.</p>`;
-  return sendEmail(
-    "verification",
-    clientEmailAddress,
-    subject,
-    verificationEmailTemplate
-  );
+  return sendEmail(clientEmailAddress, subject, verificationEmailTemplate);
 };
