@@ -3,12 +3,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-export const sendEmail = async (
-  emailType,
-  clientEmailAddress,
-  subject,
-  emailTemplate
-) => {
+export const sendEmail = async (clientEmailAddress, subject, emailTemplate) => {
   const message = {
     from: process.env.EMAIL,
     to: clientEmailAddress,
