@@ -215,9 +215,43 @@ const updateUserAttributes = async (req, res) => {
     maritalStatus,
     drugUsageStatus,
     mentalHealthStatus,
+    oldPassword,
+    newPassword,
   } = req.body;
 
   try {
+    const [user] = await dbConnection.query(
+      "SELECT password FROM users WHERE id = ?",
+      [userId]
+    );
+
+    if (user.length === 0) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ message: "User not found." });
+    }
+
+    const hashedPassword = user[0].password;
+
+    let hashedNewPassword;
+
+    if (newPassword) {
+      if (!oldPassword) {
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          message: "Old password is required to change the password.",
+        });
+      }
+
+      const isMatch = await bcrypt.compare(oldPassword, hashedPassword);
+      if (!isMatch) {
+        return res
+          .status(StatusCodes.UNAUTHORIZED)
+          .json({ message: "Old password is incorrect." });
+      }
+
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    }
+
     const query = `
       UPDATE users
       SET 
@@ -231,7 +265,8 @@ const updateUserAttributes = async (req, res) => {
         kebele = COALESCE(?, kebele),
         marital_status = COALESCE(?, marital_status),
         drug_usage_status = COALESCE(?, drug_usage_status),
-        mental_health_status= COALESCE(?, mental_health_status)
+        mental_health_status = COALESCE(?, mental_health_status),
+        password = COALESCE(?, password) -- Update password if new password is provided
       WHERE id = ?
     `;
 
@@ -247,6 +282,7 @@ const updateUserAttributes = async (req, res) => {
       maritalStatus,
       drugUsageStatus,
       mentalHealthStatus,
+      newPassword ? hashedNewPassword : null,
       userId,
     ]);
 

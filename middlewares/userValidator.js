@@ -37,6 +37,13 @@ const registerSpecificValidation = [
   }),
 ];
 
+const emailAndPasswordValidation = [
+  check("email").isEmail().withMessage("Valid email is required"),
+  check("verificationCode")
+    .notEmpty()
+    .withMessage("Verification code is required"),
+];
+
 // for registration
 export const validateRegister = [
   ...commonValidation,
@@ -44,6 +51,9 @@ export const validateRegister = [
 ];
 // login validation
 export const validateLogin = [...commonValidation];
+
+// for email verification
+export const validateEmailPassword = [...emailAndPasswordValidation];
 
 // middleware to handle validation result errors
 export const handleValidationErrors = (req, res, next) => {

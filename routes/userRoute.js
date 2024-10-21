@@ -12,6 +12,7 @@ import {
 } from "../controllers/userController.js";
 import {
   handleValidationErrors,
+  validateEmailPassword,
   validateLogin,
   validateRegister,
 } from "../middlewares/userValidator.js";
@@ -19,12 +20,17 @@ import {
 const router = express.Router();
 
 router.post("/register", validateRegister, handleValidationErrors, register);
-router.post("/verify-email", verifyEmail);
+router.post(
+  "/verify-email",
+  validateEmailPassword,
+  handleValidationErrors,
+  verifyEmail
+);
 router.post("/login", validateLogin, handleValidationErrors, login);
 router.post("/update/:userId", updateUserAttributes);
-router.get("/get-all", getAllUsers);
+router.get("/get-all", getAllUsers); // admin
 router.get("/get/:userId", getUserByID);
-router.delete("/delete/:userId", deleteUserByID);
+router.delete("/delete/:userId", deleteUserByID); // admin
 router.post("/forgot-password", forgetPassword);
 router.post("/reset-password", resetPassword);
 
