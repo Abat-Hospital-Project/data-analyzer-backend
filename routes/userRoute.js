@@ -1,4 +1,5 @@
 import express from "express";
+import authMiddleware from "../middlewares/authMiddleware.js";
 import {
   register,
   login,
@@ -12,9 +13,11 @@ import {
 } from "../controllers/userController.js";
 import {
   handleValidationErrors,
-  validateEmailPassword,
+  validateEmail,
+  validateForgotPassword,
   validateLogin,
   validateRegister,
+  validateResetPassword,
 } from "../middlewares/userValidator.js";
 
 const router = express.Router();
@@ -22,16 +25,26 @@ const router = express.Router();
 router.post("/register", validateRegister, handleValidationErrors, register);
 router.post(
   "/verify-email",
-  validateEmailPassword,
+  validateEmail,
   handleValidationErrors,
   verifyEmail
 );
 router.post("/login", validateLogin, handleValidationErrors, login);
-router.post("/update/:userId", updateUserAttributes);
-router.get("/get-all", getAllUsers); // admin
-router.get("/get/:userId", getUserByID);
-router.delete("/delete/:userId", deleteUserByID); // admin
-router.post("/forgot-password", forgetPassword);
-router.post("/reset-password", resetPassword);
+router.post("/update/:userId", authMiddleware, updateUserAttributes);
+router.get("/get-all", authMiddleware, getAllUsers); // admin
+router.get("/get/:userId", authMiddleware, getUserByID);
+router.delete("/delete/:userId", authMiddleware, deleteUserByID); // admin
+router.post(
+  "/forgot-password",
+  validateForgotPassword,
+  handleValidationErrors,
+  forgetPassword
+);
+router.post(
+  "/reset-password",
+  validateResetPassword,
+  handleValidationErrors,
+  resetPassword
+);
 
 export default router;
