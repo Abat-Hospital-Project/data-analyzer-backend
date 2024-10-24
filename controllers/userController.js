@@ -2,6 +2,8 @@ import dbConnection from "../config/dbConfig.js";
 import { StatusCodes } from "http-status-codes";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import dayjs from "dayjs";
+import { v4 as uuidv4 } from "uuid";
 import VerificationCodeEmailTemplate from "../emails/VerificationCodeEmailTemplate.js";
 import ForgotPasswordEmailTemplate from "../emails/ForgotPasswordEmailTemplate.js";
 import PasswordChangedEmailTemplate from "../emails/PasswordChangedEmailTemplate.js";
@@ -152,6 +154,9 @@ const verifyEmail = async (req, res) => {
 const login = async (req, res) => {
   const { email, password } = req.body;
 
+  // generate a uuid
+  const refreshUUID = uuidv4();
+
   try {
     const [user] = await dbConnection.query(
       "SELECT email, password, id, isVerified FROM users WHERE email = ?",
@@ -197,6 +202,13 @@ const login = async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    const expiresAt = dayjs().add(7, "day").toDate(); // 7 days from now
+
+    await dbConnection.query(
+      "INSERT INTO refresh_tokens (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)",
+      [refreshUUID, foundUser.id, refreshToken, expiresAt]
+    );
+
     // save the refresh token on httponly cookie
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
@@ -219,7 +231,7 @@ const login = async (req, res) => {
 };
 
 // controller to refresh access token
-const refreshAccessToken = (req, res) => {
+const refreshAccessToken = async (req, res) => {
   const refreshToken = req.cookies.refreshToken;
 
   if (!refreshToken) {
@@ -230,6 +242,17 @@ const refreshAccessToken = (req, res) => {
 
   try {
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+    const [tokenRecord] = await dbConnection.query(
+      "SELECT * FROM refresh_tokens WHERE user_id = ? AND token = ?",
+      [decoded.id, refreshToken]
+    );
+
+    if (tokenRecord.length === 0) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        msg: "Invalid refresh token or token does not match the user",
+      });
+    }
 
     const newAccessToken = jwt.sign(
       {
