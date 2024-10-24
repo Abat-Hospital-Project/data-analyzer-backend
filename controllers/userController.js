@@ -28,7 +28,7 @@ const register = async (req, res) => {
     cardNumber,
   } = req.body;
 
-  console.log(password);
+  // console.log(password);
 
   try {
     const [existingUser] = await dbConnection.query(
