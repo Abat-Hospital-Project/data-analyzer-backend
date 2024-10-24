@@ -160,7 +160,7 @@ const login = async (req, res) => {
 
     if (user.length === 0) {
       return res.status(StatusCodes.BAD_REQUEST).json({
-        msg: "Invalid credentials",
+        msg: "User not found",
       });
     }
 
@@ -179,7 +179,7 @@ const login = async (req, res) => {
       });
     }
 
-    const token = jwt.sign(
+    const accessToken = jwt.sign(
       {
         id: user[0].id,
         email: user[0].email,
@@ -188,15 +188,64 @@ const login = async (req, res) => {
       { expiresIn: "1d" }
     );
 
+    const refreshToken = jwt.sign(
+      {
+        id: foundUser.id,
+        email: foundUser.email,
+      },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // save the refresh token on httponly cookie
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "Strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
     return res.status(StatusCodes.OK).json({
       msg: "User login successful",
-      token,
+      accessToken,
       userId: user[0].id,
     });
   } catch (error) {
     console.error(error.message);
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       msg: "Server error, please try again later",
+    });
+  }
+};
+
+// controller to refresh access token
+const refreshAccessToken = (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+
+  if (!refreshToken) {
+    return res.status(StatusCodes.UNAUTHORIZED).json({
+      msg: "No refresh token provided",
+    });
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+    const newAccessToken = jwt.sign(
+      {
+        id: decoded.id,
+        email: decoded.email,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    return res.status(StatusCodes.OK).json({
+      accessToken: newAccessToken,
+    });
+  } catch (error) {
+    return res.status(StatusCodes.UNAUTHORIZED).json({
+      msg: "Invalid or expired refresh token",
     });
   }
 };
@@ -453,4 +502,5 @@ export {
   deleteUserByID,
   forgetPassword,
   resetPassword,
+  refreshAccessToken,
 };

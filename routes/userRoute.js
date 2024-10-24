@@ -10,6 +10,7 @@ import {
   deleteUserByID,
   forgetPassword,
   resetPassword,
+  refreshAccessToken,
 } from "../controllers/userController.js";
 import {
   handleValidationErrors,
@@ -46,5 +47,6 @@ router.post(
   handleValidationErrors,
   resetPassword
 );
+router.post("/refresh-token", refreshAccessToken);
 
 export default router;
