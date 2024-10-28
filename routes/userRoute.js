@@ -31,7 +31,7 @@ router.post(
   verifyEmail
 );
 router.post("/login", validateLogin, handleValidationErrors, login);
-router.post("/update/:userId", authMiddleware, updateUserAttributes);
+router.put("/update/:userId", authMiddleware, updateUserAttributes);
 router.get("/get-all", authMiddleware, getAllUsers); // admin
 router.get("/get/:userId", authMiddleware, getUserByID);
 router.delete("/delete/:userId", authMiddleware, deleteUserByID); // admin
