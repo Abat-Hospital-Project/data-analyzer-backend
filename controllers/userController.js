@@ -159,7 +159,7 @@ const login = async (req, res) => {
 
   try {
     const [user] = await dbConnection.query(
-      "SELECT email, password, id, isVerified FROM users WHERE email = ?",
+      "SELECT first_name, email, password, id, isVerified FROM users WHERE email = ?",
       [email]
     );
 
@@ -219,7 +219,7 @@ const login = async (req, res) => {
 
     return res.status(StatusCodes.OK).json({
       msg: "User login successful",
-      firstName: user[0].firstName,
+      firstName: user[0].first_name,
       accessToken,
       userId: user[0].id,
     });
