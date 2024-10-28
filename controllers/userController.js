@@ -95,9 +95,9 @@ const verifyEmail = async (req, res) => {
   const { verificationCode, email } = req.body;
 
   try {
-    // select the time where the verification code was sent at
+    // Query to select the user based on verification code and email
     const checkQuery = `
-      SELECT verificationCodeSentAt 
+      SELECT first_name, id, verificationCodeSentAt 
       FROM users 
       WHERE verificationCode = ? AND email = ?
     `;
@@ -108,14 +108,14 @@ const verifyEmail = async (req, res) => {
     ]);
 
     if (rows.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "Verification failed. Invalid code or email." });
+      return res.status(400).json({
+        message: "Verification failed. Invalid code or email.",
+      });
     }
 
-    const { verificationCodeSentAt } = rows[0];
+    const { verificationCodeSentAt, id, first_name } = rows[0];
 
-    // check if the code is older than 1 hour
+    // Check if the code is older than 1 hour
     const codeSentAt = new Date(verificationCodeSentAt);
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
@@ -125,8 +125,8 @@ const verifyEmail = async (req, res) => {
       });
     }
 
-    // verify the user
-    const query = `
+    // Update user to set `isVerified` and clear the verification code and date
+    const updateQuery = `
       UPDATE users 
       SET isVerified = true, 
           verificationCode = null, 
@@ -134,14 +134,33 @@ const verifyEmail = async (req, res) => {
       WHERE verificationCode = ? AND email = ?
     `;
 
-    const [result] = await dbConnection.query(query, [verificationCode, email]);
+    const [result] = await dbConnection.query(updateQuery, [
+      verificationCode,
+      email,
+    ]);
 
     if (result.affectedRows > 0) {
-      return res.status(200).json({ message: "Email verified successfully!" });
+      // Generate access token
+      const accessToken = jwt.sign(
+        {
+          id: id,
+          email: email,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "1d" }
+      );
+
+      return res.status(200).json({
+        message: "Email verified successfully!",
+        accessToken,
+        firstName: first_name,
+        userId: id,
+        email,
+      });
     } else {
-      return res
-        .status(400)
-        .json({ message: "Verification failed. Invalid code or email." });
+      return res.status(400).json({
+        message: "Verification failed. Invalid code or email.",
+      });
     }
   } catch (error) {
     console.error("Error verifying email:", error);
