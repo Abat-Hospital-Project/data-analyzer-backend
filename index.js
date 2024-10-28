@@ -6,6 +6,8 @@ import dbConnection from "./config/dbConfig.js";
 
 // routes
 import userRoutes from "./routes/userRoute.js";
+import symptomRoutes from "./routes/symptomRoute.js";
+
 dotenv.config();
 
 const app = express();
@@ -21,6 +23,7 @@ app.use(express.json());
 // });
 
 app.use("/api/user", userRoutes);
+app.use("/api/symptoms", symptomRoutes);
 
 dbConnection
   .getConnection()
