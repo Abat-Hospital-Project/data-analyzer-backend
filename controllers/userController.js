@@ -219,6 +219,7 @@ const login = async (req, res) => {
 
     return res.status(StatusCodes.OK).json({
       msg: "User login successful",
+      firstName: user[0].firstName,
       accessToken,
       userId: user[0].id,
     });
