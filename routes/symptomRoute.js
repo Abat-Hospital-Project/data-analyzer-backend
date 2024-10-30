@@ -1,8 +1,7 @@
 import express from "express";
 import authMiddleware from "../middlewares/authMiddleware.js";
 import {
-  addUserSymptom,
-  createSymptom,
+  createAndAssociateSymptom,
   deleteSymptom,
   getAllSymptoms,
   getSymptom,
@@ -21,9 +20,8 @@ router.post(
   authMiddleware,
   validateSymptomFields,
   handleValidationErrors,
-  createSymptom
+  createAndAssociateSymptom
 );
-router.post("/add", authMiddleware, addUserSymptom);
 router.get("/get-all", authMiddleware, getAllSymptoms);
 router.get("/get/:symptomId", authMiddleware, getSymptom);
 router.get("/search", authMiddleware, searchSymptoms);
