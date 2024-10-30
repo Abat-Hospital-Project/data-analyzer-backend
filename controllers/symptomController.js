@@ -36,13 +36,13 @@ const createSymptom = async (req, res) => {
 
 // link user to symptom
 const addUserSymptom = async (req, res) => {
-  const { userID } = req.body;
+  const { cardNumber } = req.body;
   const { symptomID } = req.body;
 
   try {
     const query =
-      "INSERT INTO user_symptoms (user_id, symptom_id) VALUES (?, ?)";
-    await dbConnection.query(query, [userID, symptomID]);
+      "INSERT INTO user_symptoms (card_number, symptom_id) VALUES (?, ?)";
+    await dbConnection.query(query, [cardNumber, symptomID]);
 
     res
       .status(StatusCodes.CREATED)
