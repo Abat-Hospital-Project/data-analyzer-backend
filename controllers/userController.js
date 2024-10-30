@@ -52,7 +52,7 @@ const register = async (req, res) => {
     const sixDigitCode = generateSixDigitCode();
     const verificationCodeDate = formatDateToMySQL(new Date());
 
-    console.log(sixDigitCode);
+    //console.log(sixDigitCode);
 
     const insertUser =
       "INSERT INTO users(first_name, last_name, email, password, gender, age, phone_number, city, sub_city, kebele, marital_status, disability_status, drug_usage_status, mental_health_status, card_number, verificationCode, verificationCodeSentAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
