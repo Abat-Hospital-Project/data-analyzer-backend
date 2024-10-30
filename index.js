@@ -7,6 +7,8 @@ import dbConnection from "./config/dbConfig.js";
 // routes
 import userRoutes from "./routes/userRoute.js";
 import symptomRoutes from "./routes/symptomRoute.js";
+import diseaseRoutes from "./routes/diseaseRoute.js";
+import outcomeRoutes from "./routes/outcomeRoute.js";
 
 dotenv.config();
 
@@ -29,7 +31,9 @@ app.use(express.json());
 // });
 
 app.use("/api/user", userRoutes);
-app.use("/api/symptoms", symptomRoutes);
+app.use("/api/symptom", symptomRoutes);
+app.use("/api/disease", diseaseRoutes);
+app.use("/api/outcome", outcomeRoutes);
 
 dbConnection
   .getConnection()
