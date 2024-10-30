@@ -15,9 +15,9 @@ const app = express();
 const PORT = process.env.PORT;
 
 const corsOptions = {
-  origin: "http://localhost:3000", // This should match the URL of your frontend
-  credentials: true, // This is important to allow sending and receiving cookies
-  optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
+  origin: "http://localhost:3000",
+  credentials: true,
+  optionsSuccessStatus: 200,
 };
 
 app.use(cookieParser());
