@@ -2,73 +2,60 @@ import dbConnection from "../config/dbConfig.js";
 import { StatusCodes } from "http-status-codes";
 import { v4 as uuidv4 } from "uuid";
 
-const createAndAssociateSymptom = async (req, res) => {
-  const { name, severity, cardNumber, disease, outcome } = req.body;
-
+const createSymptom = async (req, res) => {
   try {
-    // obtain disease id from disease table
-    const [diseaseResult] = await dbConnection.query(
-      "SELECT disease_id FROM diseases WHERE name = ?",
-      [disease]
-    );
-
-    if (diseaseResult.length === 0) {
-      return res.status(400).json({ msg: "Disease not found" });
-    }
-
-    const diseaseID = diseaseResult[0].disease_id;
-
-    // obtain outcome id from outcome table
-    const [outcomeResult] = await dbConnection.query(
-      "SELECT outcome_id FROM outcomes WHERE name = ?",
-      [outcome]
-    );
-
-    if (outcomeResult.length === 0) {
-      return res.status(400).json({ msg: "Outcome not found" });
-    }
-
-    const outcomeID = outcomeResult[0].outcome_id;
+    const symptomID = uuidv4();
+    const { name } = req.body;
 
     const [existingSymptom] = await dbConnection.query(
-      "SELECT symptom_id FROM symptoms WHERE name = ?",
+      "SELECT * FROM symptoms WHERE name = ?",
       [name]
     );
 
-    let symptomID;
-
     if (existingSymptom.length > 0) {
-      symptomID = existingSymptom[0].symptom_id;
-    } else {
-      symptomID = uuidv4();
-      await dbConnection.query(
-        "INSERT INTO symptoms(symptom_id, name) VALUES(?, ?)",
-        [symptomID, name]
-      );
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: "Symptom already exists",
+      });
     }
 
-    // user to symptom relationship
-    await dbConnection.query(
-      "INSERT INTO user_symptoms (card_number, symptom_id, severity, disease_id, outcome_id) VALUES (?, ?, ?, ?, ?)",
-      [cardNumber, symptomID, severity, diseaseID, outcomeID]
-    );
-
-    // symptom to disease relationship
-    await dbConnection.query(
-      "INSERT INTO disease_symptoms (disease_id, symptom_name) VALUES (?, ?)",
-      [diseaseID, name]
-    );
-
-    // symptom to outcome relationship
-    await dbConnection.query(
-      "INSERT INTO symptom_outcomes(symptom_name, outcome_id) VALUES (?, ?)",
-      [name, outcomeID]
-    );
+    const insertSymptomQuery =
+      "INSERT INTO symptoms (symptom_id, name) VALUES (?, ?)";
+    await dbConnection.query(insertSymptomQuery, [symptomID, name]);
 
     return res.status(StatusCodes.CREATED).json({
-      msg: "Symptom created and linked to user, disease, and outcome successfully",
-      symptom_id: symptomID,
+      message: "Symptom created successfully",
+      symptomID,
+      name,
     });
+  } catch {
+    console.error(error);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ message: "Server error occured" });
+  }
+};
+
+const reportSymptoms = async (req, res) => {
+  const { cardNumber, severity, symptomIds } = req.body;
+
+  try {
+    for (let index = 0; index < symptomIds.length; index++) {
+      const symptomId = symptomIds[index];
+      const symptomSeverity = severity[index];
+
+      const insertSymptom =
+        "INSERT INTO user_symptoms(card_number, symptom_id, severity, reported_at) VALUES (?, ?, ?, ?)";
+      await dbConnection.query(insertSymptom, [
+        cardNumber,
+        symptomId,
+        symptomSeverity,
+        new Date(),
+      ]);
+    }
+
+    return res
+      .status(StatusCodes.CREATED)
+      .json({ msg: "Symptoms reported successfully" });
   } catch (error) {
     console.error(error.message);
     return res
@@ -234,7 +221,8 @@ const searchSymptoms = async (req, res) => {
 };
 
 export {
-  createAndAssociateSymptom,
+  createSymptom,
+  reportSymptoms,
   getAllSymptoms,
   getSymptom,
   updateSymptom,

@@ -1,10 +1,11 @@
 import express from "express";
 import authMiddleware from "../middlewares/authMiddleware.js";
 import {
-  createAndAssociateSymptom,
+  createSymptom,
   deleteSymptom,
   getAllSymptoms,
   getSymptom,
+  reportSymptoms,
   searchSymptoms,
   updateSymptom,
 } from "../controllers/symptomController.js";
@@ -15,13 +16,8 @@ import {
 
 const router = express.Router();
 
-router.post(
-  "/create",
-  authMiddleware,
-  validateSymptomFields,
-  handleValidationErrors,
-  createAndAssociateSymptom
-);
+router.post("/create", authMiddleware, createSymptom);
+router.post("/report", authMiddleware, reportSymptoms);
 router.get("/get-all", authMiddleware, getAllSymptoms);
 router.get("/get/:symptomId", authMiddleware, getSymptom);
 router.get("/search", authMiddleware, searchSymptoms);
