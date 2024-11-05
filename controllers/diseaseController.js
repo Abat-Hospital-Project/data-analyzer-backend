@@ -2,65 +2,238 @@ import dbConnection from "../config/dbConfig.js";
 import { StatusCodes } from "http-status-codes";
 import { v4 as uuidv4 } from "uuid";
 
-const createAndAssociateDisease = async (req, res) => {
-  const { name, outcome, symptom, cardNumber } = req.body;
-
+const createDisease = async (req, res) => {
   try {
-    // obtain outcome id from outcome name
-    const [outcomeResult] = await dbConnection.query(
-      "SELECT outcome_id FROM outcomes WHERE name = ?",
-      [outcome]
-    );
-
-    if (outcomeResult.length === 0) {
-      return res.status(400).json({ msg: "Outcome not found" });
-    }
-
-    const outcomeID = outcomeResult[0].outcome_id;
+    const diseaseID = uuidv4();
+    const { name } = req.body;
 
     const [existingDisease] = await dbConnection.query(
-      "SELECT disease_id FROM diseases WHERE name = ?",
+      "SELECT * FROM diseases WHERE name = ?",
       [name]
     );
 
-    let diseaseID;
-
     if (existingDisease.length > 0) {
-      diseaseID = existingDisease[0].disease_id;
-    } else {
-      diseaseID = uuidv4();
-      await dbConnection.query(
-        "INSERT INTO diseases(disease_id, name) VALUES(?, ?)",
-        [diseaseID, name]
-      );
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: "Disease already exists",
+      });
     }
 
-    // disease - outcome relationship
-    await dbConnection.query(
-      "INSERT INTO disease_outcomes (disease_name, outcome_id) VALUES (?, ?)",
-      [name, outcomeID]
-    );
-
-    // disease - symptom relationship
-    await dbConnection.query(
-      "INSERT INTO disease_symptoms (disease_id, symptom_name) VALUES (?, ?)",
-      [diseaseID, symptom]
-    );
-
-    // disease - user relationship
-    await dbConnection.query(
-      "INSERT INTO user_diseases (card_number, disease_id) VALUES (?, ?)",
-      [cardNumber, diseaseID]
-    );
+    const insertDiseaseQuery =
+      "INSERT INTO diseases (disease_id, name) VALUES (?, ?)";
+    await dbConnection.query(insertDiseaseQuery, [diseaseID, name]);
 
     return res.status(StatusCodes.CREATED).json({
-      msg: "Disease created and linked to user, symptom, and outcome successfully",
+      message: "Disease created successfully",
       diseaseID,
+      name,
     });
   } catch (error) {
-    console.error(error.message);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error });
+    console.error(error);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ message: "Server error occured" });
   }
 };
 
-export { createAndAssociateDisease };
+const diseaseSymptom = async (req, res) => {
+  const { symptomIds, diseaseIds } = req.body;
+
+  try {
+    for (let index = 0; index < symptomIds.length; index++) {
+      const symptomId = symptomIds[index];
+      const diseaseId = diseaseIds[index];
+
+      const insertSymptom =
+        "INSERT INTO disease_symptoms(disease_id, symptom_id, reported_at) VALUES (?, ?, ?)";
+      await dbConnection.query(insertSymptom, [
+        diseaseId,
+        symptomId,
+        new Date(),
+      ]);
+    }
+
+    return res
+      .status(StatusCodes.CREATED)
+      .json({ msg: "Associated disease with symptom successfully" });
+  } catch (error) {
+    console.error(error.message);
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ msg: "Server error, try again later" });
+  }
+};
+
+const diseaseOutcome = async (req, res) => {
+  const { outcomeIds, diseaseIds } = req.body;
+
+  try {
+    for (let index = 0; index < symptomIds.length; index++) {
+      const outcomeId = outcomeIds[index];
+      const diseaseId = diseaseIds[index];
+
+      const insertSymptom =
+        "INSERT INTO disease_outcomes(disease_id, outcome_id, reported_at) VALUES (?, ?, ?)";
+      await dbConnection.query(insertSymptom, [
+        diseaseId,
+        outcomeId,
+        new Date(),
+      ]);
+    }
+
+    return res
+      .status(StatusCodes.CREATED)
+      .json({ msg: "Associated disease with outcome successfully" });
+  } catch (error) {
+    console.error(error.message);
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ msg: "Server error, try again later" });
+  }
+};
+
+const getAllDiseases = async (req, res) => {
+  try {
+    const query = "SELECT * FROM diseases";
+    const [diseases] = await dbConnection.query(query);
+
+    if (diseases.length === 0) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ message: "No diseases found" });
+    }
+
+    return res.status(StatusCodes.OK).json(diseases);
+  } catch (error) {
+    console.error("Error retrieving diseases:", error);
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ message: "Server error, please try again later." });
+  }
+};
+
+const getDisease = async (req, res) => {
+  const { diseaseId } = req.params;
+
+  try {
+    const query = "SELECT disease_id, name FROM diseases WHERE disease_id = ?";
+    const [disease] = await dbConnection.query(query, [diseaseId]);
+
+    if (disease.length === 0) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ message: "Disease not found" });
+    }
+
+    return res.status(StatusCodes.OK).json(disease[0]);
+  } catch (error) {
+    console.error("Error retrieving disease:", error);
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ message: "Server error, please try again later." });
+  }
+};
+
+const updateDisease = async (req, res) => {
+  const { diseaseId } = req.params;
+  const { name } = req.body;
+
+  try {
+    const [disease] = await dbConnection.query(
+      "SELECT name FROM diseases WHERE disease_id = ?",
+      [diseaseId]
+    );
+
+    if (disease.length === 0) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ message: "Disease not found" });
+    }
+
+    const query = `
+      UPDATE diseases
+      SET 
+        name = COALESCE(?, name),
+      WHERE disease_id = ?
+    `;
+
+    const [result] = await dbConnection.query(query, [name, diseaseId]);
+
+    if (result.affectedRows === 0) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ message: "Disease not found" });
+    }
+
+    return res
+      .status(StatusCodes.OK)
+      .json({ message: "Disease updated successfully." });
+  } catch (error) {
+    console.error("Error updating disease:", error);
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ message: "Server error, please try again later." });
+  }
+};
+
+const deleteDisease = async (req, res) => {
+  const { diseaseId } = req.params;
+
+  try {
+    const query = "DELETE FROM diseases WHERE disease_id = ?";
+    const [result] = await dbConnection.query(query, [diseaseId]);
+
+    if (result.affectedRows === 0) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ message: "Disease not found" });
+    }
+
+    return res
+      .status(StatusCodes.OK)
+      .json({ message: "Disease deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting disease:", error);
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ message: "Server error, please try again later." });
+  }
+};
+
+const searchDiseases = async (req, res) => {
+  try {
+    const { name } = req.body;
+
+    let query = "SELECT * FROM diseases WHERE 1=1";
+    const queryParams = [];
+
+    if (name) {
+      query += " AND name LIKE ?";
+      queryParams.push(`%${name}%`);
+    }
+
+    const [diseases] = await dbConnection.query(query, queryParams);
+
+    if (diseases.length === 0) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ message: "No diseases found" });
+    }
+
+    return res.status(StatusCodes.OK).json(diseases);
+  } catch (error) {
+    console.error("Error retrieving diseases:", error);
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ message: "Server error, please try again later." });
+  }
+};
+export {
+  createDisease,
+  diseaseSymptom,
+  diseaseOutcome,
+  getDisease,
+  getAllDiseases,
+  updateDisease,
+  searchDiseases,
+  deleteDisease,
+};

@@ -535,6 +535,87 @@ const resetPassword = async (req, res) => {
   }
 };
 
+// associations
+
+const userSymptom = async (req, res) => {
+  const { cardNumber, severity, symptomIds } = req.body;
+
+  try {
+    for (let index = 0; index < symptomIds.length; index++) {
+      const symptomId = symptomIds[index];
+      const symptomSeverity = severity[index];
+
+      const insertSymptom =
+        "INSERT INTO user_symptoms(card_number, symptom_id, severity, reported_at) VALUES (?, ?, ?, ?)";
+      await dbConnection.query(insertSymptom, [
+        cardNumber,
+        symptomId,
+        symptomSeverity,
+        new Date(),
+      ]);
+    }
+
+    return res
+      .status(StatusCodes.CREATED)
+      .json({ msg: "Symptoms associated with user successfully" });
+  } catch (error) {
+    console.error(error.message);
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ msg: "Server error, try again later" });
+  }
+};
+
+const userDisease = async (req, res) => {
+  const { cardNumber, diseaseIds } = req.body;
+
+  try {
+    for (let index = 0; index < diseaseIds.length; index++) {
+      const diseaseId = diseaseIds[index];
+
+      const insertDisease =
+        "INSERT INTO user_diseases(card_number, disease_id, reported_at) VALUES (?, ?, ?)";
+      await dbConnection.query(insertDisease, [
+        cardNumber,
+        diseaseId,
+        new Date(),
+      ]);
+    }
+
+    return res
+      .status(StatusCodes.CREATED)
+      .json({ msg: "Associated user with disease successfully" });
+  } catch (error) {
+    console.error(error.message);
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ msg: "Server error, try again later" });
+  }
+};
+
+const userOutcome = async (req, res) => {
+  const { cardNumber, outcomeId } = req.body;
+
+  try {
+    const insertOutcome =
+      "INSERT INTO user_outcomes(card_number, outcome_id, reported_at) VALUES (?, ?, ?)";
+    await dbConnection.query(insertOutcome, [
+      cardNumber,
+      outcomeId,
+      new Date(),
+    ]);
+
+    return res
+      .status(StatusCodes.CREATED)
+      .json({ msg: "Associated outcome with user successfully" });
+  } catch (error) {
+    console.error(error.message);
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ msg: "Server error, try again later" });
+  }
+};
+
 export {
   register,
   verifyEmail,
@@ -546,4 +627,8 @@ export {
   forgetPassword,
   resetPassword,
   refreshAccessToken,
+  // associations
+  userSymptom,
+  userDisease,
+  userOutcome,
 };

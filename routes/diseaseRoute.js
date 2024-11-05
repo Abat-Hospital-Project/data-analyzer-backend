@@ -1,6 +1,10 @@
 import express from "express";
 import authMiddleware from "../middlewares/authMiddleware.js";
-import { createAndAssociateDisease } from "../controllers/diseaseController.js";
+import {
+  createDisease,
+  diseaseOutcome,
+  diseaseSymptom,
+} from "../controllers/diseaseController.js";
 import {
   handleValidationErrors,
   validateSymptomFields,
@@ -8,6 +12,8 @@ import {
 
 const router = express.Router();
 
-router.post("/create", createAndAssociateDisease);
+router.post("/create", createDisease);
+router.post("/associate-symptom", authMiddleware, diseaseSymptom);
+router.post("/associate-outcome", authMiddleware, diseaseOutcome);
 
 export default router;

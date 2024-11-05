@@ -27,40 +27,11 @@ const createSymptom = async (req, res) => {
       symptomID,
       name,
     });
-  } catch {
+  } catch (error) {
     console.error(error);
     res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
       .json({ message: "Server error occured" });
-  }
-};
-
-const reportSymptoms = async (req, res) => {
-  const { cardNumber, severity, symptomIds } = req.body;
-
-  try {
-    for (let index = 0; index < symptomIds.length; index++) {
-      const symptomId = symptomIds[index];
-      const symptomSeverity = severity[index];
-
-      const insertSymptom =
-        "INSERT INTO user_symptoms(card_number, symptom_id, severity, reported_at) VALUES (?, ?, ?, ?)";
-      await dbConnection.query(insertSymptom, [
-        cardNumber,
-        symptomId,
-        symptomSeverity,
-        new Date(),
-      ]);
-    }
-
-    return res
-      .status(StatusCodes.CREATED)
-      .json({ msg: "Symptoms reported successfully" });
-  } catch (error) {
-    console.error(error.message);
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ msg: "Server error, try again later" });
   }
 };
 
@@ -222,7 +193,6 @@ const searchSymptoms = async (req, res) => {
 
 export {
   createSymptom,
-  reportSymptoms,
   getAllSymptoms,
   getSymptom,
   updateSymptom,
