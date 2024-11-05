@@ -77,10 +77,9 @@ const register = async (req, res) => {
       verificationCodeDate,
     ]);
 
-    const [userDetails] = await dbConnection.query(
-      "SELECT * FROM users WHERE email = ?",
-      [email]
-    );
+    const query =
+      "SELECT id, first_name, last_name, email, age, card_number, phone_number, city, sub_city, kebele, marital_status, disability_status, drug_usage_status, mental_health_status, isVerified FROM users WHERE email = ?";
+    const [userDetails] = await dbConnection.query(query, [email]);
 
     // send verification email
     VerificationCodeEmailTemplate(email, sixDigitCode);
@@ -402,7 +401,7 @@ const getUserByID = async (req, res) => {
 
   try {
     const query =
-      "SELECT first_name, last_name, email, age, phone_number, city, sub_city, kebele, marital_status, disability_status, drug_usage_status, mental_health_status, isVerified FROM users WHERE id = ?";
+      "SELECT id, first_name, last_name, email, gender, age, card_number, phone_number, city, sub_city, kebele, marital_status, disability_status, drug_usage_status, mental_health_status, isVerified FROM users WHERE id = ?";
     const [user] = await dbConnection.query(query, [userId]);
 
     if (user.length === 0) {
@@ -423,7 +422,7 @@ const getUserByID = async (req, res) => {
 const getAllUsers = async (req, res) => {
   try {
     const query =
-      "SELECT id, first_name, last_name, email, age, phone_number, city, sub_city, kebele, marital_status, disability_status, drug_usage_status, mental_health_status, isVerified FROM users";
+      "SELECT id, first_name, last_name, email, gender, age, card_number, phone_number, city, sub_city, kebele, marital_status, disability_status, drug_usage_status, mental_health_status, isVerified FROM users";
     const [users] = await dbConnection.query(query);
 
     if (users.length === 0) {
