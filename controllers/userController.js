@@ -77,11 +77,17 @@ const register = async (req, res) => {
       verificationCodeDate,
     ]);
 
+    const [userDetails] = await dbConnection.query(
+      "SELECT * FROM users WHERE email = ?",
+      [email]
+    );
+
     // send verification email
     VerificationCodeEmailTemplate(email, sixDigitCode);
 
     return res.status(StatusCodes.CREATED).json({
       msg: "User created successfully",
+      user: userDetails[0],
     });
   } catch (error) {
     console.error(error.message);
@@ -95,7 +101,6 @@ const verifyEmail = async (req, res) => {
   const { verificationCode, email } = req.body;
 
   try {
-    // Query to select the user based on verification code and email
     const checkQuery = `
       SELECT first_name, id, verificationCodeSentAt 
       FROM users 
@@ -115,7 +120,6 @@ const verifyEmail = async (req, res) => {
 
     const { verificationCodeSentAt, id, first_name } = rows[0];
 
-    // Check if the code is older than 1 hour
     const codeSentAt = new Date(verificationCodeSentAt);
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
@@ -125,7 +129,6 @@ const verifyEmail = async (req, res) => {
       });
     }
 
-    // Update user to set `isVerified` and clear the verification code and date
     const updateQuery = `
       UPDATE users 
       SET isVerified = true, 
@@ -140,7 +143,6 @@ const verifyEmail = async (req, res) => {
     ]);
 
     if (result.affectedRows > 0) {
-      // Generate access token
       const accessToken = jwt.sign(
         {
           id: id,
