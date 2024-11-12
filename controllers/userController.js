@@ -19,6 +19,7 @@ const register = async (req, res) => {
     age,
     password,
     confirmPassword,
+    cardNumber,
     phoneNumber,
     city,
     subCity,
@@ -27,10 +28,7 @@ const register = async (req, res) => {
     disabilityStatus,
     drugUsageStatus,
     mentalHealthStatus,
-    cardNumber,
   } = req.body;
-
-  // console.log(password);
 
   try {
     const [existingUser] = await dbConnection.query(
@@ -54,10 +52,14 @@ const register = async (req, res) => {
 
     //console.log(sixDigitCode);
 
+    // generate a uuid
+    const userID = uuidv4();
+
     const insertUser =
-      "INSERT INTO users(first_name, last_name, email, password, gender, age, phone_number, city, sub_city, kebele, marital_status, disability_status, drug_usage_status, mental_health_status, card_number, verificationCode, verificationCodeSentAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+      "INSERT INTO users(id, first_name, last_name, email, password, gender, age, phone_number, city, sub_city, kebele, marital_status, disability_status, drug_usage_status, mental_health_status, card_number, verificationCode, verificationCodeSentAt) VALUES (?, ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     await dbConnection.query(insertUser, [
+      userID,
       firstName,
       lastName,
       email,
@@ -77,6 +79,7 @@ const register = async (req, res) => {
       verificationCodeDate,
     ]);
 
+    // return user details as a response
     const query =
       "SELECT id, first_name, last_name, email, age, card_number, phone_number, city, sub_city, kebele, marital_status, disability_status, drug_usage_status, mental_health_status, isVerified FROM users WHERE email = ?";
     const [userDetails] = await dbConnection.query(query, [email]);
@@ -225,7 +228,7 @@ const login = async (req, res) => {
     const expiresAt = dayjs().add(7, "day").toDate(); // 7 days from now
 
     await dbConnection.query(
-      "INSERT INTO refresh_tokens (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)",
+      "INSERT INTO refresh_tokens (refresh_token_id, user_id, token, expires_at) VALUES (?, ?, ?, ?)",
       [refreshUUID, foundUser.id, refreshToken, expiresAt]
     );
 
@@ -536,87 +539,6 @@ const resetPassword = async (req, res) => {
   }
 };
 
-// associations
-
-const userSymptom = async (req, res) => {
-  const { cardNumber, severity, symptomIds } = req.body;
-
-  try {
-    for (let index = 0; index < symptomIds.length; index++) {
-      const symptomId = symptomIds[index];
-      const symptomSeverity = severity[index];
-
-      const insertSymptom =
-        "INSERT INTO user_symptoms(card_number, symptom_id, severity, reported_at) VALUES (?, ?, ?, ?)";
-      await dbConnection.query(insertSymptom, [
-        cardNumber,
-        symptomId,
-        symptomSeverity,
-        new Date(),
-      ]);
-    }
-
-    return res
-      .status(StatusCodes.CREATED)
-      .json({ msg: "Symptoms associated with user successfully" });
-  } catch (error) {
-    console.error(error.message);
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ msg: "Server error, try again later" });
-  }
-};
-
-const userDisease = async (req, res) => {
-  const { cardNumber, diseaseIds } = req.body;
-
-  try {
-    for (let index = 0; index < diseaseIds.length; index++) {
-      const diseaseId = diseaseIds[index];
-
-      const insertDisease =
-        "INSERT INTO user_diseases(card_number, disease_id, reported_at) VALUES (?, ?, ?)";
-      await dbConnection.query(insertDisease, [
-        cardNumber,
-        diseaseId,
-        new Date(),
-      ]);
-    }
-
-    return res
-      .status(StatusCodes.CREATED)
-      .json({ msg: "Associated user with disease successfully" });
-  } catch (error) {
-    console.error(error.message);
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ msg: "Server error, try again later" });
-  }
-};
-
-const userOutcome = async (req, res) => {
-  const { cardNumber, outcomeId } = req.body;
-
-  try {
-    const insertOutcome =
-      "INSERT INTO user_outcomes(card_number, outcome_id, reported_at) VALUES (?, ?, ?)";
-    await dbConnection.query(insertOutcome, [
-      cardNumber,
-      outcomeId,
-      new Date(),
-    ]);
-
-    return res
-      .status(StatusCodes.CREATED)
-      .json({ msg: "Associated outcome with user successfully" });
-  } catch (error) {
-    console.error(error.message);
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ msg: "Server error, try again later" });
-  }
-};
-
 export {
   register,
   verifyEmail,
@@ -628,8 +550,4 @@ export {
   forgetPassword,
   resetPassword,
   refreshAccessToken,
-  // associations
-  userSymptom,
-  userDisease,
-  userOutcome,
 };
