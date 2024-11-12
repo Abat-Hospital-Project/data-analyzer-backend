@@ -152,7 +152,7 @@ const updateDisease = async (req, res) => {
     const query = `
       UPDATE diseases
       SET 
-        name = COALESCE(?, name),
+        name = COALESCE(?, name)
       WHERE disease_id = ?
     `;
 
