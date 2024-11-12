@@ -27,7 +27,7 @@ const createOutcome = async (req, res) => {
       outcomeID,
       name,
     });
-  } catch {
+  } catch (error) {
     console.error(error);
     res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
