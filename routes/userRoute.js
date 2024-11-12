@@ -11,9 +11,6 @@ import {
   forgetPassword,
   resetPassword,
   refreshAccessToken,
-  userSymptom,
-  userDisease,
-  userOutcome,
 } from "../controllers/userController.js";
 import {
   handleValidationErrors,
@@ -51,9 +48,4 @@ router.post(
   resetPassword
 );
 router.post("/refresh-token", refreshAccessToken);
-
-// associations
-router.post("/associate-symptom", authMiddleware, userSymptom);
-router.post("/associate-disease", authMiddleware, userDisease);
-router.post("/associate-outcome", authMiddleware, userOutcome);
 export default router;
