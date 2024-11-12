@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import dbConnection from "./config/dbConfig.js";
 
 // routes
+import cardRoutes from "./routes/cardRoute.js";
 import userRoutes from "./routes/userRoute.js";
 import symptomRoutes from "./routes/symptomRoute.js";
 import diseaseRoutes from "./routes/diseaseRoute.js";
@@ -30,6 +31,7 @@ app.use(express.json());
 //   res.send("Testing");
 // });
 
+app.use("/api/card", cardRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/symptom", symptomRoutes);
 app.use("/api/disease", diseaseRoutes);
